@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shoe Mileage Tracker - Strava Analytics</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --text-main: #0f172a;
+      --text-sub: #64748b;
+      --orange: #fc4c02;
+      --green: #22c55e;
+      --red: #ef4444;
+      --red-bg: #fee2e2;
+      --red-text: #991b1b;
+      --gray-pill: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    header {
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-title h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .header-title p {
+      font-size: 0.9rem;
+      color: var(--text-sub);
+    }
+
+    /* Shoe Grid (3 columns matching screenshot) */
+    .shoe-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    /* Card Box */
+    .shoe-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .shoe-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Card Header */
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .shoe-name {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.2;
+    }
+
+    .retired-pill {
+      background-color: var(--gray-pill);
+      color: #ffffff;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 12px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* Mileage Big Number */
+    .mileage-number {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.8rem;
+      font-weight: 800;
+      color: var(--orange);
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+
+    .mileage-number span {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-left: 4px;
+    }
+
+    /* Progress Bar */
+    .progress-container {
+      margin-bottom: 16px;
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 8px;
+      background-color: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+
+    .progress-bar-fill.green {
+      background-color: var(--green);
+    }
+
+    .progress-bar-fill.red {
+      background-color: var(--red);
+    }
+
+    .progress-text {
+      font-size: 0.78rem;
+      color: var(--text-sub);
+      font-weight: 500;
+    }
+
+    /* Alert Box */
+    .alert-banner {
+      background-color: var(--red-bg);
+      color: var(--red-text);
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-align: center;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    /* Footer Stats Grid */
+    .footer-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      border-top: 1px solid #f1f5f9;
+      padding-top: 12px;
+      font-size: 0.78rem;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-label {
+      color: var(--text-sub);
+      font-weight: 500;
+      font-size: 0.72rem;
+    }
+
+    .stat-value {
+      color: var(--text-main);
+      font-weight: 700;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-title">
+      <h1>My Shoe Mileage & Wear Tracker</h1>
+      <p>BigQuery Strava Equipment Analytics</p>
+    </div>
+  </header>
+
+  <div class="shoe-grid" id="shoe-grid">
+    <!-- Shoe Cards Dynamically Rendered -->
+  </div>
+
+  <script>
+    async function loadShoes() {
+      try {
+        const res = await fetch('gear_data.json');
+        const shoes = await res.json();
+        renderShoes(shoes);
+      } catch (err) {
+        console.error('Error loading gear data:', err);
+      }
+    }
+
+    function renderShoes(shoes) {
+      const grid = document.getElementById('shoe-grid');
+      grid.innerHTML = '';
+
+      shoes.forEach(shoe => {
+        const totalKm = shoe.total_km || 0;
+        const maxKm = shoe.max_km || 500;
+        const pct = Math.min(100, Math.round((totalKm / maxKm) * 100));
+        
+        const isHighWear = pct >= 80;
+        const barColor = isHighWear ? 'red' : 'green';
+
+        const card = document.createElement('div');
+        card.className = 'shoe-card';
+
+        const firstUseFormatted = shoe.first_use ? new Date(shoe.first_use).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }) : 'N/A';
+
+        let alertBanner = '';
+        if (pct >= 100) {
+          alertBanner = `<div class="alert-banner">Replacement Needed!</div>`;
+        } else if (pct >= 80) {
+          alertBanner = `<div class="alert-banner" style="background: #fef3c7; color: #92400e;">Nearing Lifespan Limit</div>`;
+        }
+
+        const retiredTag = shoe.is_retired ? `<span class="retired-pill">RETIRED</span>` : '';
+
+        card.innerHTML = `
+          <div>
+            <div class="card-header">
+              <div class="shoe-name">${shoe.gear_name}</div>
+              ${retiredTag}
+            </div>
+
+            <div class="mileage-number">
+              ${totalKm} <span>km</span>
+            </div>
+
+            <div class="progress-container">
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill ${barColor}" style="width: ${pct}%;"></div>
+              </div>
+              <div class="progress-text">${pct}% of ${maxKm} km</div>
+            </div>
+
+            ${alertBanner}
+          </div>
+
+          <div class="footer-stats">
+            <div class="stat-item">
+              <span class="stat-label">Uses:</span>
+              <span class="stat-value">${shoe.total_uses}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Avg Pace:</span>
+              <span class="stat-value">${shoe.avg_pace_str}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">First Use:</span>
+              <span class="stat-value">${firstUseFormatted}</span>
+            </div>
+          </div>
+        `;
+
+        grid.appendChild(card);
+      });
+    }
+
+    loadShoes();
+  </script>
+</body>
+</html>

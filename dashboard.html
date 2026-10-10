@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Strava Athlete Dashboard - BigQuery</title>
+  
+  <!-- Google Fonts & Libraries -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js & Leaflet JS/CSS -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <style>
+    :root {
+      --bg-dark: #0d0f12;
+      --card-bg: #161920;
+      --card-border: #242936;
+      --orange: #fc4c02;
+      --orange-hover: #e04300;
+      --text-main: #f0f2f5;
+      --text-sub: #8c96a6;
+      --accent-blue: #3b82f6;
+      --accent-green: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      padding: 16px;
+      min-height: 100vh;
+    }
+
+    /* Navbar Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand svg {
+      fill: var(--orange);
+      width: 28px;
+      height: 28px;
+    }
+
+    .brand h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .breadcrumb {
+      font-size: 0.85rem;
+      color: var(--text-sub);
+    }
+
+    /* Top KPI Grid (Screenshot Header Match) */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .kpi-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .kpi-card.hero-banner {
+      background-color: var(--orange);
+      border: none;
+      color: #fff;
+    }
+
+    .kpi-card.hero-banner h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .kpi-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-sub);
+    }
+
+    .hero-banner .kpi-label {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .kpi-value {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-top: 8px;
+    }
+
+    .kpi-unit {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-sub);
+      margin-left: 4px;
+    }
+
+    /* Dashboard Main Grid (2 Columns split) */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      gap: 16px;
+    }
+
+    .grid-column {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    .card-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text-main);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Map Styling */
+    #map {
+      height: 320px;
+      width: 100%;
+      border-radius: 6px;
+    }
+
+    /* Table Styling (Match Screenshot Table) */
+    .table-container {
+      overflow-x: auto;
+      max-height: 480px;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      text-align: left;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background-color: var(--card-bg);
+      color: var(--text-sub);
+      font-weight: 600;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--card-border);
+      text-transform: uppercase;
+      font-size: 0.7rem;
+    }
+
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      white-space: nowrap;
+    }
+
+    tr:hover {
+      background-color: rgba(255, 255, 255, 0.03);
+    }
+
+    .badge-type {
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background-color: rgba(252, 76, 2, 0.15);
+      color: var(--orange);
+    }
+
+    .hr-heat {
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    /* Chart Containers */
+    .chart-box {
+      position: relative;
+      height: 220px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 512 512">
+        <path d="M120.1 276.4l64.2-126.3 64.2 126.3h-44.2l-20-40.2-20 40.2h-44.2zm204.6 128l-40.1-80.3h-28.5l68.6 135.9 68.6-135.9h-28.5l-40.1 80.3z"/>
+      </svg>
+      <div>
+        <h1>Strava Athlete Dashboard</h1>
+        <div class="breadcrumb">BigQuery Live Analytics • US-Central1</div>
+      </div>
+    </div>
+    <div style="font-size: 0.8rem; color: var(--text-sub);">
+      Data Refreshed: <span id="last-updated">Today</span>
+    </div>
+  </header>
+
+  <!-- Top KPI Row (Matched to Screenshot) -->
+  <div class="kpi-row">
+    <div class="kpi-card hero-banner">
+      <div class="kpi-label">Strava Analytics</div>
+      <h2>Athlete Summary</h2>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-label">Activities</div>
+      <div class="kpi-value" id="kpi-activities">0</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-label">Distance</div>
+      <div class="kpi-value"><span id="kpi-distance">0</span><span class="kpi-unit">km</span></div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-label">Moving Time</div>
+      <div class="kpi-value" id="kpi-time" style="font-size: 1.3rem;">00:00:00</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-label">Elevation Gain</div>
+      <div class="kpi-value"><span id="kpi-elevation">0</span><span class="kpi-unit">m</span></div>
+    </div>
+  </div>
+
+  <!-- Main 2-Column Dashboard Grid -->
+  <div class="dashboard-grid">
+
+    <!-- Left Column: Moving Time Chart & Activities Table -->
+    <div class="grid-column">
+      
+      <!-- Monthly Moving Time Chart -->
+      <div class="card">
+        <div class="card-title">
+          <span>Monthly Moving Time Breakdown</span>
+          <span style="font-size: 0.75rem; color: var(--text-sub);">Hours / Month</span>
+        </div>
+        <div class="chart-box">
+          <canvas id="monthlyTimeChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Activities Table -->
+      <div class="card">
+        <div class="card-title">
+          <span>Recent Activities</span>
+          <span style="font-size: 0.75rem; color: var(--orange);" id="table-count">0 workouts</span>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Distance</th>
+                <th>Moving Time</th>
+                <th>Pace</th>
+                <th>Heart Rate</th>
+                <th>Elevation</th>
+                <th>Gear</th>
+              </tr>
+            </thead>
+            <tbody id="activities-table-body">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Map & Distance/Elevation Combo Chart -->
+    <div class="grid-column">
+      
+      <!-- Activities Map -->
+      <div class="card">
+        <div class="card-title">Activities on Map</div>
+        <div id="map"></div>
+      </div>
+
+      <!-- Distance vs Elevation Gain Combo Chart -->
+      <div class="card">
+        <div class="card-title">Distance vs. Elevation Gain</div>
+        <div class="chart-box">
+          <canvas id="comboChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    async function loadDashboard() {
+      try {
+        const res = await fetch('dashboard_data.json');
+        const data = await res.json();
+        renderDashboard(data);
+      } catch (err) {
+        console.error('Could not load dashboard data:', err);
+      }
+    }
+
+    function renderDashboard(activities) {
+      // 1. KPI Calculation
+      const totalActivities = activities.length;
+      const totalDistance = activities.reduce((sum, a) => sum + (a.Distance_km || 0), 0);
+      const totalElevation = activities.reduce((sum, a) => sum + (a.Elevation_m || 0), 0);
+      const totalDurationMin = activities.reduce((sum, a) => sum + (a.Duration_min || 0), 0);
+
+      document.getElementById('kpi-activities').textContent = totalActivities;
+      document.getElementById('kpi-distance').textContent = totalDistance.toFixed(1);
+      document.getElementById('kpi-elevation').textContent = Math.round(totalElevation).toLocaleString();
+
+      const hours = Math.floor(totalDurationMin / 60);
+      const mins = Math.floor(totalDurationMin % 60);
+      const secs = Math.floor((totalDurationMin * 60) % 60);
+      document.getElementById('kpi-time').textContent = `${hours}h ${mins}m`;
+      document.getElementById('table-count').textContent = `${totalActivities} workouts`;
+
+      // 2. Render Table
+      const tbody = document.getElementById('activities-table-body');
+      tbody.innerHTML = '';
+
+      activities.forEach(act => {
+        const tr = document.createElement('tr');
+        
+        let hrHeatClass = 'background: rgba(255, 255, 255, 0.05); color: #fff;';
+        if (act.Avg_HR > 165) hrHeatClass = 'background: rgba(239, 68, 68, 0.25); color: #f87171;';
+        else if (act.Avg_HR > 150) hrHeatClass = 'background: rgba(249, 115, 22, 0.25); color: #fb923c;';
+        else if (act.Avg_HR > 130) hrHeatClass = 'background: rgba(34, 197, 94, 0.25); color: #4ade80;';
+
+        const durMin = act.Duration_min || 0;
+        const durFormatted = `${Math.floor(durMin)}:${String(Math.floor((durMin % 1) * 60)).padStart(2, '0')}`;
+
+        tr.innerHTML = `
+          <td style="color: var(--text-sub);">${act.Date || 'N/A'}</td>
+          <td style="font-weight: 600;">${act.Name || 'Workout'}</td>
+          <td><span class="badge-type">${act.Type || 'Run'}</span></td>
+          <td style="font-weight: 600;">${act.Distance_km ? act.Distance_km.toFixed(2) + ' km' : '0 km'}</td>
+          <td>${durFormatted}</td>
+          <td style="color: var(--text-sub);">${act.Pace || 'N/A'}</td>
+          <td><span class="hr-heat" style="${hrHeatClass}">${act.Avg_HR ? Math.round(act.Avg_HR) + ' bpm' : 'N/A'}</span></td>
+          <td>${act.Elevation_m ? Math.round(act.Elevation_m) + ' m' : '0 m'}</td>
+          <td style="color: var(--text-sub); font-size: 0.75rem;">${act.Gear || 'Unspecified'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // 3. Render Leaflet Map
+      const map = L.map('map').setView([14.38, 120.98], 11);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19
+      }).addTo(map);
+
+      const validCoords = activities.filter(a => a.Start_Lat && a.Start_Lng);
+      if (validCoords.length > 0) {
+        const bounds = [];
+        validCoords.forEach(a => {
+          const lat = parseFloat(a.Start_Lat);
+          const lng = parseFloat(a.Start_Lng);
+          bounds.push([lat, lng]);
+          
+          L.circleMarker([lat, lng], {
+            radius: 6,
+            fillColor: '#fc4c02',
+            color: '#ffffff',
+            weight: 1,
+            opacity: 0.9,
+            fillOpacity: 0.8
+          }).addTo(map).bindPopup(`<b>${a.Name}</b><br>${a.Date}<br>${a.Distance_km} km @ ${a.Pace}`);
+        });
+        map.fitBounds(bounds, { padding: [20, 20] });
+      }
+
+      // 4. Group data by Month for Charts
+      const monthlyData = {};
+      activities.slice().reverse().forEach(a => {
+        const key = a.Date ? a.Date.substring(0, 7) : 'Unknown';
+        if (!monthlyData[key]) {
+          monthlyData[key] = { duration: 0, distance: 0, elevation: 0 };
+        }
+        monthlyData[key].duration += (a.Duration_min || 0) / 60.0;
+        monthlyData[key].distance += (a.Distance_km || 0);
+        monthlyData[key].elevation += (a.Elevation_m || 0);
+      });
+
+      const months = Object.keys(monthlyData);
+      const durations = months.map(m => monthlyData[m].duration.toFixed(1));
+      const distances = months.map(m => monthlyData[m].distance.toFixed(1));
+      const elevations = months.map(m => Math.round(monthlyData[m].elevation));
+
+      // Monthly Moving Time Bar Chart
+      new Chart(document.getElementById('monthlyTimeChart'), {
+        type: 'bar',
+        data: {
+          labels: months,
+          datasets: [{
+            label: 'Moving Time (Hours)',
+            data: durations,
+            backgroundColor: '#22c55e',
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8c96a6' } },
+            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8c96a6' } }
+          }
+        }
+      });
+
+      // Combo Chart (Distance Bar + Elevation Line)
+      new Chart(document.getElementById('comboChart'), {
+        type: 'bar',
+        data: {
+          labels: months,
+          datasets: [
+            {
+              type: 'line',
+              label: 'Elevation Gain (m)',
+              data: elevations,
+              borderColor: '#3b82f6',
+              borderWidth: 2,
+              pointBackgroundColor: '#3b82f6',
+              yAxisID: 'y1'
+            },
+            {
+              type: 'bar',
+              label: 'Distance (km)',
+              data: distances,
+              backgroundColor: '#fc4c02',
+              borderRadius: 4,
+              yAxisID: 'y'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#8c96a6' } } },
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8c96a6' } },
+            y: { position: 'left', grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8c96a6' } },
+            y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#3b82f6' } }
+          }
+        }
+      });
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+name: Deploy to Google Cloud Functions
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Cloud Functions
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy Cloud Function
+        run: |
+          gcloud functions deploy strava-fitness-sync \
+            --gen2 \
+            --runtime=python311 \
+            --region=${{ secrets.GCP_REGION || 'asia-southeast1' }} \
+            --source=. \
+            --entry-point=main \
+            --trigger-http \
+            --no-allow-unauthenticated \
+            --timeout=300s \
+            --memory=512Mi \
+            --set-env-vars=GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID || 'strava-sync-505308' }},STRAVA_CLIENT_ID=${{ secrets.STRAVA_CLIENT_ID }},STRAVA_CLIENT_SECRET=${{ secrets.STRAVA_CLIENT_SECRET }},STRAVA_REFRESH_TOKEN=${{ secrets.STRAVA_REFRESH_TOKEN }}

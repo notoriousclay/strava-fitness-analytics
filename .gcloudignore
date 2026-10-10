@@ -1,0 +1,16 @@
+.git
+.github
+.gitignore
+.gcloudignore
+*.bat
+*.ps1
+*.log
+*.html
+*.sql
+backfill*.py
+dashboard_data.json
+gear_data.json
+.env
+credentials.json
+__pycache__/
+*.pyc

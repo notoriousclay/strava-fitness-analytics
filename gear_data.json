@@ -1,0 +1,57 @@
+[
+  {
+    "gear_name": "Dynafish Xiaonian",
+    "total_uses": 73,
+    "total_km": 150.2,
+    "avg_pace_dec": 6.28,
+    "first_use": "2026-05-20",
+    "last_use": "2026-08-23",
+    "max_km": 500,
+    "avg_pace_str": "06:16/km",
+    "is_retired": false
+  },
+  {
+    "gear_name": "Anta PG7 2.5",
+    "total_uses": 35,
+    "total_km": 34.6,
+    "avg_pace_dec": 5.64,
+    "first_use": "2026-03-08",
+    "last_use": "2026-05-19",
+    "max_km": 500,
+    "avg_pace_str": "05:38/km",
+    "is_retired": true
+  },
+  {
+    "gear_name": "Unspecified / Other",
+    "total_uses": 12,
+    "total_km": 22.3,
+    "avg_pace_dec": 7.2,
+    "first_use": "2025-05-11",
+    "last_use": "2026-06-30",
+    "max_km": 500,
+    "avg_pace_str": "07:12/km",
+    "is_retired": false
+  },
+  {
+    "gear_name": "Xtep 2000KM 5 Pro",
+    "total_uses": 5,
+    "total_km": 20.7,
+    "avg_pace_dec": 6.78,
+    "first_use": "2026-07-14",
+    "last_use": "2026-08-11",
+    "max_km": 600,
+    "avg_pace_str": "06:46/km",
+    "is_retired": false
+  },
+  {
+    "gear_name": "Li-ning Feidian 6 Elite",
+    "total_uses": 6,
+    "total_km": 20.7,
+    "avg_pace_dec": 5.9,
+    "first_use": "2026-07-24",
+    "last_use": "2026-07-26",
+    "max_km": 400,
+    "avg_pace_str": "05:54/km",
+    "is_retired": false
+  }
+]

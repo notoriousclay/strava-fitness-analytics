@@ -1,0 +1,23 @@
+# Environment and credentials
+.env
+*.env
+credentials.json
+*-key.json
+
+# Logs
+*.log
+sync.log
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
