@@ -4,7 +4,7 @@
 > **Role Targeted:** Data Engineer / Analytics Engineer / Data Specialist  
 > **Status:** Production / Fully Automated  
 > **Tech Stack:** Python 3.11, Google Cloud Platform (BigQuery, Cloud Functions Gen 2, Cloud Scheduler, IAM), Strava REST API, BigQuery ML (Gemini 1.5 Remote Model), GitHub Actions (CI/CD), Google Looker Studio, OpenStreetMap Nominatim  
-> **Live Looker Studio Dashboard:** [https://datastudio.google.com/s/gXCMPgKJH48](https://datastudio.google.com/s/gXCMPgKJH48)  
+> **Live Data Studio Dashboard:** [https://datastudio.google.com/s/gXCMPgKJH48](https://datastudio.google.com/s/gXCMPgKJH48)  
 > **GitHub Repository:** [github.com/notoriousclay/strava-fitness-analytics](https://github.com/notoriousclay/strava-fitness-analytics)
 
 ---
