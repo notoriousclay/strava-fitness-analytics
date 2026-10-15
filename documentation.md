@@ -570,17 +570,3 @@ This project provides concrete evidence of technical competency across multiple 
 - **Training Intensity Distribution:** Analyzed 80/20 polarized training adherence (Easy vs. Tempo vs. Long).
 - **Stakeholder-Ready Storytelling:** Translated complex wearable metrics into actionable athletic insights and automated coaching summaries.
 
----
-
-## 💬 Interview Talking Points & Elevator Pitch
-
-> *"In this project, I built a serverless ELT and GenAI pipeline that extracts endurance athletic telemetry from the Strava REST API, enriches it with spatial and biomechanical features, and loads it into Google BigQuery.*  
->  
-> *Rather than treating the warehouse as a passive data store, I configured 3 BigQuery Scheduled Queries that invoke Google Gemini 1.5 directly inside our SQL queries—generating daily session breakdowns, weekly microcycle reviews, and monthly mesocycle summaries with zero data egress. The materialized summaries feed directly into an interactive Google Looker Studio dashboard, delivering instantaneous sub-second query performance and rich sports-science insights."*
-
----
-
-**Project Lead:** Data Specialist  
-**Live Dashboard:** [https://datastudio.google.com/s/gXCMPgKJH48](https://datastudio.google.com/s/gXCMPgKJH48)  
-**Repository:** [github.com/notoriousclay/strava-fitness-analytics](https://github.com/notoriousclay/strava-fitness-analytics)  
-**License:** MIT License
