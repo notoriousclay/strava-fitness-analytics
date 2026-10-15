@@ -13,8 +13,6 @@
 
 ## 📌 Executive Summary
 
-Modern endurance athletes generate rich, high-frequency telemetry (GPS coordinates, cadence, heart rate, elevation gain, and equipment wear), yet native fitness applications isolate these data points in proprietary silos with limited analytical depth.
-
 This repository implements an **end-to-end, automated Enterprise Data Pipeline** that:
 1. **Extracts** raw athletic telemetry from the **Strava REST API** using automated OAuth 2.0 token rotation.
 2. **Enriches** records with **spatial reverse-geocoding** (OpenStreetMap Nominatim) and **biomechanical feature engineering** (cadence estimation, stride frequency, pace formatting).
