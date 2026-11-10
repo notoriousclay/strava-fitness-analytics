@@ -39,4 +39,4 @@ jobs:
             --no-allow-unauthenticated \
             --timeout=300s \
             --memory=512Mi \
-            --set-env-vars=GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID || 'strava-sync-505308' }},STRAVA_CLIENT_ID=${{ secrets.STRAVA_CLIENT_ID }},STRAVA_CLIENT_SECRET=${{ secrets.STRAVA_CLIENT_SECRET }},STRAVA_REFRESH_TOKEN=${{ secrets.STRAVA_REFRESH_TOKEN }}
+            --set-env-vars="GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID || 'strava-sync-505308' }},STRAVA_CLIENT_ID=${{ secrets.STRAVA_CLIENT_ID }},STRAVA_CLIENT_SECRET=${{ secrets.STRAVA_CLIENT_SECRET }},STRAVA_REFRESH_TOKEN=${{ secrets.STRAVA_REFRESH_TOKEN }},GOOGLE_FIT_CLIENT_ID=${{ secrets.GOOGLE_FIT_CLIENT_ID }},GOOGLE_FIT_CLIENT_SECRET=${{ secrets.GOOGLE_FIT_CLIENT_SECRET }},GOOGLE_FIT_REFRESH_TOKEN=${{ secrets.GOOGLE_FIT_REFRESH_TOKEN }}"

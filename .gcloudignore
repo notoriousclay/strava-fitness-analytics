@@ -8,6 +8,7 @@
 *.html
 *.sql
 backfill*.py
+get_fit_token.py
 dashboard_data.json
 gear_data.json
 .env
