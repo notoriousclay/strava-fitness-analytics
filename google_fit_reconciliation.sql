@@ -1,6 +1,6 @@
 -- SQL definitions for Google Fit & Strava Steps Integration in BigQuery
 
--- 1. Create Dedicated Table for Daily Step Snapshots (Partitioned by Date)
+-- 1. Create Dedicated Table for Daily Step Snapshots (Raw Ground Truth)
 CREATE TABLE IF NOT EXISTS `strava_data.daily_steps` (
     Date DATE NOT NULL,
     Total_Steps INT64 NOT NULL,
@@ -12,7 +12,7 @@ OPTIONS(
     description = "Passive 24-hour total daily step telemetry from Google Fit (Pixel 8a)"
 );
 
--- 2. Daily Reconciliation View (With Week Identifier Columns)
+-- 2. Daily Reconciliation View (With 1,000 Step Buffer for Device-Separation)
 CREATE OR REPLACE VIEW `strava_data.v_daily_step_reconciliation` AS
 WITH daily_strava AS (
     SELECT 
@@ -32,11 +32,14 @@ SELECT
     FORMAT_DATE('%G-W%V', h.Date) AS year_week,
     FORMAT_DATE('%A', h.Date) AS day_name,
     
-    -- Step Metrics
-    h.Total_Steps AS total_daily_steps,
+    -- Step Metrics & Compensation
+    h.Total_Steps AS raw_fit_steps,
+    1000 AS unrecorded_step_buffer,
+    (h.Total_Steps + 1000) AS total_daily_steps,
     COALESCE(s.workout_steps, 0) AS workout_steps,
-    -- Incidental steps: Daily steps accumulated outside recorded workouts
-    GREATEST(0, h.Total_Steps - COALESCE(s.workout_steps, 0)) AS incidental_steps,
+    
+    -- Incidental steps: Movement accumulated outside dedicated Strava workouts
+    GREATEST(0, (h.Total_Steps + 1000) - COALESCE(s.workout_steps, 0)) AS incidental_steps,
     
     -- Strava Sessions
     COALESCE(s.workout_distance_km, 0.0) AS workout_distance_km,
@@ -56,8 +59,10 @@ SELECT
     week_num,
     CONCAT(FORMAT_DATE('%b %d', week_start_date), ' - ', FORMAT_DATE('%b %d', week_end_date)) AS week_label,
     
-    -- Aggregated Weekly Volume
+    -- Aggregated Weekly Volume (Includes 1,000/day buffer)
     SUM(total_daily_steps) AS total_weekly_steps,
+    SUM(raw_fit_steps) AS total_raw_fit_steps,
+    SUM(unrecorded_step_buffer) AS total_buffer_steps,
     SUM(workout_steps) AS total_workout_steps,
     SUM(incidental_steps) AS total_incidental_steps,
     ROUND(SUM(workout_distance_km), 2) AS total_workout_km,
