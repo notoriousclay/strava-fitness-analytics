@@ -35,7 +35,7 @@ flowchart TD
     subgraph ORCHESTRATION ["2. CI/CD & Serverless Orchestration"]
         GH["GitHub Repository<br/>(main branch)"] -->|Push / Workflow Dispatch| GHA["GitHub Actions CI/CD<br/>(deploy.yml)"]
         GHA -->|Automated Deploy| GCF["Google Cloud Functions v2<br/>(strava-fitness-sync / Python 3.11)"]
-        CS["Cloud Scheduler<br/>(Cron: 0 20 * * *)"] -->|Daily OIDC Trigger| GCF
+        CS["Cloud Scheduler<br/>(Cron: 0 */8 * * *)"] -->|Every 8h OIDC Trigger| GCF
         WTS["Local Fallback Runner<br/>(Task Scheduler / setup_task.ps1)"] -.->|Emergency / Local Run| B
     end
 
@@ -486,13 +486,13 @@ jobs:
 ### 6.2 Automated Scheduling via Google Cloud Scheduler
 Daily ingestion is orchestrated using a serverless cron job:
 - **Job Name**: `daily-strava-sync`
-- **Schedule**: `0 20 * * *` (Daily at 8:00 PM local time)
+- **Schedule**: `0 */8 * * *` (Every 8 hours: 12:00 AM, 8:00 AM, 4:00 PM local time)
 - **Target**: Cloud Function HTTP Endpoint
 - **Security**: OIDC Token authentication via dedicated Service Account (`strava-bigquery-loader@strava-sync-505308.iam.gserviceaccount.com`), blocking unauthenticated public internet traffic.
 
 ### 6.3 Local Hybrid Fallback Runner (`setup_task.ps1` & `run_sync.bat`)
 To ensure pipeline resilience during cloud outages or local development:
-- A Windows Task Scheduler task is configured via PowerShell (`setup_task.ps1`) to run `run_sync.bat` daily at 8:00 PM.
+- A Windows Task Scheduler task is configured via PowerShell (`setup_task.ps1`) to run `run_sync.bat` every 8 hours.
 - Appends execution output and exit codes directly to `sync.log`.
 
 ---

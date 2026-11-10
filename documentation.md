@@ -38,7 +38,7 @@ flowchart TD
     subgraph ORCHESTRATION ["2. CI/CD & Serverless Orchestration"]
         GH["GitHub Repository<br/>(main branch)"] -->|Push / Workflow Dispatch| GHA["GitHub Actions CI/CD<br/>(deploy.yml)"]
         GHA -->|Automated Deploy| GCF["Google Cloud Functions v2<br/>(strava-fitness-sync / Python 3.11)"]
-        CS["Cloud Scheduler<br/>(Cron: 0 20 * * *)"] -->|Daily OIDC Trigger| GCF
+        CS["Cloud Scheduler<br/>(Cron: 0 */8 * * *)"] -->|Every 8h OIDC Trigger| GCF
         WTS["Local Fallback Runner<br/>(Task Scheduler / setup_task.ps1)"] -.->|Emergency / Local Run| B
     end
 
@@ -437,13 +437,13 @@ FROM ML.GENERATE_TEXT(
 - Injects Strava secrets and GCP credentials directly into environment variables.
 
 ### 6.2 Cloud Scheduler Configuration
-- **Cron Expression:** `0 20 * * *` (8:00 PM Daily)
+- **Cron Expression:** `0 */8 * * *` (Every 8 Hours: 12:00 AM, 8:00 AM, 4:00 PM)
 - **Timezone:** Local Athlete Timezone (`Asia/Manila` / `Asia/Singapore`)
 - **Target:** HTTP POST / GET to Cloud Function Trigger URL
 - **Auth:** OIDC Token using dedicated service account `strava-bigquery-loader@strava-sync-505308.iam.gserviceaccount.com`
 
 ### 6.3 Local Hybrid Fallback (`setup_task.ps1` & `run_sync.bat`)
-A Windows PowerShell script configures local Task Scheduler to trigger `run_sync.bat` daily, logging executions to `sync.log` in case of cloud infrastructure testing or offline runs.
+A Windows PowerShell script configures local Task Scheduler to trigger `run_sync.bat` every 8 hours, logging executions to `sync.log` in case of cloud infrastructure testing or offline runs.
 
 ---
 
