@@ -50,33 +50,63 @@ LEFT JOIN daily_strava s
 ORDER BY h.Date DESC;
 
 
--- 3. Dedicated Weekly Step Summary View (70,000 Steps Target)
+-- 3. Dedicated Weekly Step Summary & ACWR Training Load View
 CREATE OR REPLACE VIEW `strava_data.v_weekly_step_summary` AS
+WITH weekly_aggregated AS (
+    SELECT 
+        week_start_date,
+        week_end_date,
+        year_week,
+        week_num,
+        CONCAT(FORMAT_DATE('%b %d', week_start_date), ' - ', FORMAT_DATE('%b %d', week_end_date)) AS week_label,
+        
+        -- Aggregated Weekly Volume (Includes 1,000/day buffer)
+        SUM(total_daily_steps) AS total_weekly_steps,
+        SUM(raw_fit_steps) AS total_raw_fit_steps,
+        SUM(unrecorded_step_buffer) AS total_buffer_steps,
+        SUM(workout_steps) AS total_workout_steps,
+        SUM(incidental_steps) AS total_incidental_steps,
+        ROUND(SUM(workout_distance_km), 2) AS total_workout_km,
+        SUM(workout_sessions) AS total_sessions,
+        COUNT(Date) AS logged_days,
+        
+        -- 70k Target Evaluation
+        70000 AS weekly_step_target,
+        CASE 
+            WHEN SUM(total_daily_steps) >= 70000 THEN TRUE 
+            ELSE FALSE 
+        END AS is_70k_goal_met,
+        ROUND((SUM(total_daily_steps) / 70000.0) * 100, 1) AS goal_achievement_pct,
+        GREATEST(0, 70000 - SUM(total_daily_steps)) AS steps_remaining_to_70k
+    FROM `strava_data.v_daily_step_reconciliation`
+    GROUP BY week_start_date, week_end_date, year_week, week_num
+)
 SELECT 
-    week_start_date,
-    week_end_date,
-    year_week,
-    week_num,
-    CONCAT(FORMAT_DATE('%b %d', week_start_date), ' - ', FORMAT_DATE('%b %d', week_end_date)) AS week_label,
-    
-    -- Aggregated Weekly Volume (Includes 1,000/day buffer)
-    SUM(total_daily_steps) AS total_weekly_steps,
-    SUM(raw_fit_steps) AS total_raw_fit_steps,
-    SUM(unrecorded_step_buffer) AS total_buffer_steps,
-    SUM(workout_steps) AS total_workout_steps,
-    SUM(incidental_steps) AS total_incidental_steps,
-    ROUND(SUM(workout_distance_km), 2) AS total_workout_km,
-    SUM(workout_sessions) AS total_sessions,
-    COUNT(Date) AS logged_days,
-    
-    -- 70k Target Evaluation
-    70000 AS weekly_step_target,
+    w.*,
+    -- ACWR Metrics (Acute = Current Week km, Chronic = 4-Week Rolling Average km)
+    w.total_workout_km AS acute_workout_km,
+    ROUND(AVG(w.total_workout_km) OVER (
+        ORDER BY w.week_start_date 
+        ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
+    ), 2) AS chronic_workout_km,
     CASE 
-        WHEN SUM(total_daily_steps) >= 70000 THEN TRUE 
-        ELSE FALSE 
-    END AS is_70k_goal_met,
-    ROUND((SUM(total_daily_steps) / 70000.0) * 100, 1) AS goal_achievement_pct,
-    GREATEST(0, 70000 - SUM(total_daily_steps)) AS steps_remaining_to_70k
-FROM `strava_data.v_daily_step_reconciliation`
-GROUP BY week_start_date, week_end_date, year_week, week_num
-ORDER BY week_start_date DESC;
+        WHEN AVG(w.total_workout_km) OVER (
+            ORDER BY w.week_start_date 
+            ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
+        ) > 0 THEN
+            ROUND(w.total_workout_km / AVG(w.total_workout_km) OVER (
+                ORDER BY w.week_start_date 
+                ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
+            ), 2)
+        ELSE 1.0
+    END AS acwr_ratio,
+    -- Qualitative Training Stress Status
+    CASE 
+        WHEN w.total_workout_km = 0 THEN 'Rest / Zero'
+        WHEN (w.total_workout_km / NULLIF(AVG(w.total_workout_km) OVER (ORDER BY w.week_start_date ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 0)) < 0.8 THEN 'Deload / Recovery (<0.8)'
+        WHEN (w.total_workout_km / NULLIF(AVG(w.total_workout_km) OVER (ORDER BY w.week_start_date ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 0)) BETWEEN 0.8 AND 1.3 THEN 'Optimal Sweet Spot (0.8-1.3)'
+        WHEN (w.total_workout_km / NULLIF(AVG(w.total_workout_km) OVER (ORDER BY w.week_start_date ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 0)) BETWEEN 1.3 AND 1.5 THEN 'Elevated Load (1.3-1.5)'
+        ELSE 'Injury Danger Spike (>1.5)'
+    END AS training_stress_status
+FROM weekly_aggregated w
+ORDER BY w.week_start_date DESC;
